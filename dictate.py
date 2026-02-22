@@ -12,6 +12,7 @@ import threading
 import signal
 import sys
 import os
+import time
 from pathlib import Path
 
 from pynput import keyboard
@@ -384,6 +385,8 @@ def main():
 
     if args.restart:
         kill_running()
+        time.sleep(0.5)
+        print("Starting transcribe in background...")
         args.background = True
 
     if get_running_pid():
@@ -391,10 +394,12 @@ def main():
         print("Use --kill to stop it first")
         return
 
+    if args.background and not args.restart:
+        print("Starting transcribe in background...")
+
     if args.background:
         daemonize()
         write_pid()
-        print(f"Started transcribe in background (PID {os.getpid()})")
 
     print(f"Transcribe v{__version__}")
     print(f"Config: {CONFIG_PATH}")
