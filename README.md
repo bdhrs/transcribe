@@ -42,9 +42,9 @@ transcribe -k           # Stop background instance
 transcribe -r           # Restart (kill and start in background)
 ```
 
-- Hold **F12** (or configured key) to record
+- Hold **cmd** (or configured key) to record
 - Release to transcribe → copies to clipboard and types
-- **Ctrl+C** to quit
+- **Ctrl+C** to quit (foreground mode)
 
 ## Autostart
 
@@ -66,12 +66,29 @@ device = cpu
 compute_type = int8
 
 [hotkey]
-key = f12
+key = cmd
 
 [behavior]
 auto_type = true
 notifications = true
 ```
+
+### Changing the Hotkey
+
+1. Open the config file: `nano ~/.config/transcribe/config.ini`
+2. Edit the `key` value under `[hotkey]`
+3. Save and restart: `transcribe -r`
+
+**Valid keys:**
+
+| Type | Keys |
+|------|------|
+| Modifiers | `cmd`, `cmd_r`, `alt`, `alt_r`, `alt_gr`, `ctrl`, `ctrl_r`, `shift`, `shift_r` |
+| Function | `f1` through `f20` |
+| Navigation | `home`, `end`, `page_up`, `page_down`, `insert`, `delete`, `up`, `down`, `left`, `right` |
+| Special | `scroll_lock`, `pause`, `print_screen`, `caps_lock`, `num_lock`, `space`, `tab`, `enter`, `esc`, `backspace` |
+| Media | `media_play_pause`, `media_next`, `media_previous`, `media_volume_up`, `media_volume_down`, `media_volume_mute` |
+| Single char | Any single letter or number: `a`, `b`, `1`, `2`, etc. |
 
 ### GPU Support
 
