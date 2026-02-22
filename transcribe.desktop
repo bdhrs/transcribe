@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Transcribe
+Comment=Push-to-talk voice dictation
+Exec=transcribe --background
+Icon=audio-input-microphone
+Terminal=false
+Categories=Utility;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
