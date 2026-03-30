@@ -6,6 +6,7 @@ Hold the hotkey to record, release to transcribe and copy to clipboard.
 
 import argparse
 import configparser
+import queue
 import subprocess
 import tempfile
 import threading
@@ -84,6 +85,9 @@ class Dictation:
         self.running = True
         self.is_transcribing = False
         self.listener = None
+        self._event_queue = queue.Queue()
+        self._worker_stop = threading.Event()
+        threading.Thread(target=self._event_worker, daemon=True).start()
 
         # Load model in background
         print(f"Loading Whisper model ({MODEL_SIZE})...")
@@ -104,11 +108,27 @@ class Dictation:
             if "cudnn" in str(e).lower() or "cuda" in str(e).lower():
                 print("Hint: Try setting device = cpu in your config, or install cuDNN.")
 
+    def _event_worker(self):
+        while not self._worker_stop.is_set():
+            try:
+                event = self._event_queue.get(timeout=0.5)
+            except queue.Empty:
+                continue
+            if event is None:
+                break
+            try:
+                if event == "start" and not self.recording:
+                    self.start_recording()
+                elif event == "stop" and self.recording:
+                    self.stop_recording()
+            except Exception as e:
+                print(f"Event worker error: {e}")
+
     def notify(self, title, message, icon="dialog-information", timeout=2000):
         """Send a desktop notification."""
         if not NOTIFICATIONS:
             return
-        subprocess.run(
+        subprocess.Popen(
             [
                 "notify-send",
                 "-a", "Transcribe",
@@ -118,7 +138,8 @@ class Dictation:
                 title,
                 message
             ],
-            capture_output=True
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
     def start_recording(self):
@@ -209,7 +230,7 @@ class Dictation:
                         self.listener.stop()
                     try:
                         subprocess.run(
-                            ["xdotool", "type", "--clearmodifiers", "--delay", "3", text],
+                            ["xdotool", "type", "--delay", "3", text],
                             timeout=30
                         )
                     except subprocess.TimeoutExpired:
@@ -230,16 +251,18 @@ class Dictation:
                 os.unlink(self.temp_file.name)
 
     def on_press(self, key):
-        if key == HOTKEY:
-            self.start_recording()
+        if key == HOTKEY and not self.recording:
+            self._event_queue.put("start")
 
     def on_release(self, key):
-        if key == HOTKEY:
-            self.stop_recording()
+        if key == HOTKEY and self.recording:
+            self._event_queue.put("stop")
 
     def stop(self):
         print("\nExiting...")
         self.running = False
+        self._worker_stop.set()
+        self._event_queue.put(None)
         if self.listener:
             self.listener.stop()
         if self.record_process:
