@@ -17,16 +17,23 @@ sudo pacman -S alsa-utils xclip xdotool libnotify
 # Install globally with uv
 git clone https://github.com/bdhrs/transcribe.git
 cd transcribe
+just install
+```
+
+`just install` runs `uv tool install -e .` and copies `config.example.ini` and `hotwords.example.txt` to `~/.config/transcribe/` — only if those files don't already exist, so re-running after an upgrade never overwrites your changes.
+
+If you don't have `just`, run these manually:
+
+```bash
 uv tool install -e .
+mkdir -p ~/.config/transcribe
+cp config.example.ini ~/.config/transcribe/config.ini
+cp hotwords.example.txt ~/.config/transcribe/hotwords.txt
 ```
 
 ## Setup
 
 ```bash
-# Create config
-mkdir -p ~/.config/transcribe
-cp config.example.ini ~/.config/transcribe/config.ini
-
 # Enable autostart
 mkdir -p ~/.config/autostart
 cp transcribe.desktop ~/.config/autostart/
@@ -105,8 +112,43 @@ compute_type = float16
 | tiny.en | ~75MB | Fastest | Basic |
 | base.en | ~150MB | Fast | Good |
 | small.en | ~500MB | Medium | Better |
+| distil-small.en | ~330MB | Fast | Better (distilled) |
 | medium.en | ~1.5GB | Slower | Great |
+| large-v3-turbo | ~1.6GB | Fast | Near-best |
 | large-v3 | ~3GB | Slowest | Best |
+
+Use `transcribe --test` to compare models on your own voice and pick the best fit (see [Testing models](#testing-models) below).
+
+## Testing models
+
+`transcribe --test` records a sample using your configured hotkey, then runs it through every model in `[test] models` and prints transcription + timing for each. You pick the winner.
+
+```bash
+transcribe --test                 # record + test all configured models
+transcribe --test --reuse-recording  # reuse last recording, re-run models
+```
+
+Configure the list in `~/.config/transcribe/config.ini`:
+
+```ini
+[test]
+models = tiny.en, base.en, small.en, distil-small.en
+```
+
+The list is open-ended — any model name accepted by faster-whisper works.
+
+## Hotwords
+
+Add words or phrases the model frequently gets wrong to `~/.config/transcribe/hotwords.txt` — one entry per line. Lines starting with `#` and blank lines are ignored.
+
+```
+# ~/.config/transcribe/hotwords.txt
+Zellij
+Ghostty
+uv
+```
+
+The file is seeded from `hotwords.example.txt` by `just install`. Hotwords are applied on every transcription (normal mode and test mode).
 
 ## Troubleshooting
 

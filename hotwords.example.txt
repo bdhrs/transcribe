@@ -1,0 +1,8 @@
+# Hotwords for transcription — one entry per line.
+# These bias the model toward recognising these words/phrases correctly.
+# Blank lines and lines starting with # are ignored.
+#
+# Examples:
+# Zellij
+# Ghostty
+# uv

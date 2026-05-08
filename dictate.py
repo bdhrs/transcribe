@@ -6,6 +6,7 @@ Hold the hotkey to record, release to transcribe and copy to clipboard.
 
 import argparse
 import configparser
+import gc
 import queue
 import subprocess
 import tempfile
@@ -16,6 +17,8 @@ import os
 import time
 from pathlib import Path
 
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+
 from pynput import keyboard
 from faster_whisper import WhisperModel
 
@@ -23,6 +26,18 @@ __version__ = "0.1.0"
 
 # Load configuration
 CONFIG_PATH = Path.home() / ".config" / "transcribe" / "config.ini"
+HOTWORDS_DEFAULT_PATH = Path.home() / ".config" / "transcribe" / "hotwords.txt"
+
+
+def load_hotwords(path: Path) -> str:
+    if not path.exists():
+        return ""
+    lines = []
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            lines.append(line)
+    return " ".join(lines)
 
 
 def load_config():
@@ -41,6 +56,9 @@ def load_config():
     if CONFIG_PATH.exists():
         config.read(CONFIG_PATH)
 
+    raw_models = config.get("test", "models", fallback="base.en, distil-small.en")
+    test_models = [m.strip() for m in raw_models.split(",") if m.strip()]
+
     return {
         "model": config.get("whisper", "model", fallback=defaults["model"]),
         "device": config.get("whisper", "device", fallback=defaults["device"]),
@@ -48,10 +66,13 @@ def load_config():
         "key": config.get("hotkey", "key", fallback=defaults["key"]),
         "auto_type": config.getboolean("behavior", "auto_type", fallback=True),
         "notifications": config.getboolean("behavior", "notifications", fallback=True),
+        "hotwords_file": Path(config.get("behavior", "hotwords_file", fallback=str(HOTWORDS_DEFAULT_PATH))).expanduser(),
+        "test_models": test_models,
     }
 
 
 CONFIG = load_config()
+HOTWORDS = load_hotwords(CONFIG["hotwords_file"])
 
 
 def get_hotkey(key_name):
@@ -72,6 +93,7 @@ DEVICE = CONFIG["device"]
 COMPUTE_TYPE = CONFIG["compute_type"]
 AUTO_TYPE = CONFIG["auto_type"]
 NOTIFICATIONS = CONFIG["notifications"]
+TEST_MODELS = CONFIG["test_models"]
 
 
 class Dictation:
@@ -205,10 +227,13 @@ class Dictation:
             if not self.temp_file or not os.path.exists(self.temp_file.name):
                 return
 
+            transcribe_kwargs = {"beam_size": 5, "vad_filter": True}
+            if HOTWORDS:
+                transcribe_kwargs["initial_prompt"] = HOTWORDS
+                transcribe_kwargs["hotwords"] = HOTWORDS
             segments, info = self.model.transcribe(
                 self.temp_file.name,
-                beam_size=5,
-                vad_filter=True,
+                **transcribe_kwargs,
             )
 
             text = " ".join(segment.text.strip() for segment in segments)
@@ -367,6 +392,85 @@ def show_status():
         print("transcribe is not running")
 
 
+TEST_WAV_PATH = Path.home() / ".cache" / "transcribe" / "test.wav"
+
+
+def run_test_mode(reuse: bool):
+    TEST_WAV_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    if reuse:
+        if not TEST_WAV_PATH.exists():
+            print(f"Error: no saved recording at {TEST_WAV_PATH}. Run without --reuse-recording first.")
+            sys.exit(1)
+        print(f"Reusing existing recording: {TEST_WAV_PATH}")
+    else:
+        hotkey_name = HOTKEY.name if hasattr(HOTKEY, "name") else HOTKEY.char
+        print(f"Hold [{hotkey_name}] to record your test sample. Release when done.")
+
+        recorded = threading.Event()
+        record_process = [None]
+
+        def on_press(key):
+            if key == HOTKEY and record_process[0] is None:
+                rp = subprocess.Popen(
+                    ["arecord", "-f", "S16_LE", "-r", "16000", "-c", "1", "-t", "wav", str(TEST_WAV_PATH)],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                record_process[0] = rp
+                print("Recording...")
+
+        def on_release(key):
+            if key == HOTKEY and record_process[0] is not None:
+                record_process[0].terminate()
+                try:
+                    record_process[0].wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    record_process[0].kill()
+                recorded.set()
+                return False  # stop listener
+
+        listener = keyboard.Listener(on_press=on_press, on_release=on_release)
+        listener.start()
+        recorded.wait()
+        listener.join()
+        print(f"Recording saved to {TEST_WAV_PATH}\n")
+
+    print(f"Testing {len(TEST_MODELS)} model(s): {', '.join(TEST_MODELS)}\n")
+    print("=" * 60)
+
+    for model_name in TEST_MODELS:
+        print(f"\nModel: {model_name}", flush=True)
+        try:
+            t0 = time.time()
+            model = WhisperModel(model_name, device=DEVICE, compute_type=COMPUTE_TYPE)
+            load_time = time.time() - t0
+            print(f"  Load:       {load_time:.2f}s", flush=True)
+
+            transcribe_kwargs = {"beam_size": 5, "vad_filter": True}
+            if HOTWORDS:
+                transcribe_kwargs["initial_prompt"] = HOTWORDS
+                transcribe_kwargs["hotwords"] = HOTWORDS
+
+            t1 = time.time()
+            segments, _ = model.transcribe(str(TEST_WAV_PATH), **transcribe_kwargs)
+            text = " ".join(seg.text.strip() for seg in segments)
+            transcribe_time = time.time() - t1
+
+            print(f"  Transcribe: {transcribe_time:.2f}s", flush=True)
+            print(f"  Output:     {text if text else '(no speech detected)'}", flush=True)
+        except Exception as e:
+            print(f"  Error: {e}", flush=True)
+        finally:
+            try:
+                del model
+            except NameError:
+                pass
+            gc.collect()
+
+    print("\n" + "=" * 60)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Transcribe - Push-to-talk voice dictation"
@@ -396,7 +500,22 @@ def main():
         action="store_true",
         help="Kill and restart in background"
     )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Test mode: record a sample and run it through all configured models"
+    )
+    parser.add_argument(
+        "--reuse-recording",
+        action="store_true",
+        help="With --test: skip recording and reuse the last saved test WAV"
+    )
     args = parser.parse_args()
+
+    if args.test:
+        check_dependencies()
+        run_test_mode(reuse=args.reuse_recording)
+        return
 
     if args.kill:
         kill_running()
@@ -426,6 +545,8 @@ def main():
 
     print(f"Transcribe v{__version__}")
     print(f"Config: {CONFIG_PATH}")
+    hotwords_count = len(HOTWORDS.split()) if HOTWORDS else 0
+    print(f"Hotwords: {hotwords_count} {'entry' if hotwords_count == 1 else 'entries'} loaded" if hotwords_count else "Hotwords: none")
 
     check_dependencies()
 
