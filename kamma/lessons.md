@@ -1,0 +1,1 @@
+- 2026-06-26 [WORKFLOW] faster-whisper returns empty text when both initial_prompt and hotwords carry the same long phrase list; symptom was a silent failure (notifications off), diagnosed by transcribing the leftover temp wav directly.

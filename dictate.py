@@ -229,7 +229,6 @@ class Dictation:
 
             transcribe_kwargs = {"beam_size": 5, "vad_filter": True}
             if HOTWORDS:
-                transcribe_kwargs["initial_prompt"] = HOTWORDS
                 transcribe_kwargs["hotwords"] = HOTWORDS
             segments, info = self.model.transcribe(
                 self.temp_file.name,
@@ -449,7 +448,6 @@ def run_test_mode(reuse: bool):
 
             transcribe_kwargs = {"beam_size": 5, "vad_filter": True}
             if HOTWORDS:
-                transcribe_kwargs["initial_prompt"] = HOTWORDS
                 transcribe_kwargs["hotwords"] = HOTWORDS
 
             t1 = time.time()
