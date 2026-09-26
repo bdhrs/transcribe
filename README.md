@@ -7,6 +7,7 @@ Push-to-talk voice dictation for Linux using faster-whisper. Hold a key to recor
 ```bash
 # System dependencies (Ubuntu/Debian)
 sudo apt install alsa-utils xclip xdotool libnotify-bin
+sudo apt install pulseaudio-utils   # optional: provides paplay for start/stop sounds
 
 # Fedora
 sudo dnf install alsa-utils xclip xdotool libnotify
@@ -49,9 +50,21 @@ transcribe -k           # Stop background instance
 transcribe -r           # Restart (kill and start in background)
 ```
 
-- Hold **cmd** (or configured key) to record
-- Release to transcribe → copies to clipboard and types
+- Hold **cmd** (or configured key) to record; a short sound plays
+- Release to transcribe → a second sound plays, then the text is copied to the clipboard and typed
 - **Ctrl+C** to quit (foreground mode)
+
+Before the text is copied, filler words (`uh`, `um`, `er`, `ah`, `eh`, `hmm`, `hm`, `mhm`) are removed and the punctuation around them is tidied. Words like "uh-huh", "mm-hmm" and "umbrella" are left alone, and "mm" is kept because it also means millimetres.
+
+The typed text ends with one space, so dictations in a row do not run together. The clipboard copy has no trailing space.
+
+## Tests
+
+```bash
+uv run --with pytest pytest tests/
+```
+
+The tests cover filler removal and run without an X display.
 
 ## Autostart
 
@@ -78,7 +91,14 @@ key = cmd
 [behavior]
 auto_type = true
 notifications = true
+sounds = true
+start_sound = /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga
+stop_sound = /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga
 ```
+
+- `sounds` plays a short cue when recording starts and stops (needs `paplay`). Defaults to `true`.
+- `start_sound` is the file played on press. Keep it short, because it plays while the mic is already recording.
+- `stop_sound` is the file played on release. By default it is the same blip as the start sound.
 
 ### Changing the Hotkey
 

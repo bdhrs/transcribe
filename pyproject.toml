@@ -31,6 +31,7 @@ repository = "https://github.com/bdhrs/transcribe"
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]
+exclude = ["tests"]
 
 [build-system]
 requires = ["hatchling"]

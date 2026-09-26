@@ -8,6 +8,7 @@ import argparse
 import configparser
 import gc
 import queue
+import re
 import subprocess
 import tempfile
 import threading
@@ -27,6 +28,8 @@ __version__ = "0.1.0"
 # Load configuration
 CONFIG_PATH = Path.home() / ".config" / "transcribe" / "config.ini"
 HOTWORDS_DEFAULT_PATH = Path.home() / ".config" / "transcribe" / "hotwords.txt"
+START_SOUND_DEFAULT_PATH = "/usr/share/sounds/freedesktop/stereo/audio-volume-change.oga"
+STOP_SOUND_DEFAULT_PATH = "/usr/share/sounds/freedesktop/stereo/audio-volume-change.oga"
 
 
 def load_hotwords(path: Path) -> str:
@@ -38,6 +41,41 @@ def load_hotwords(path: Path) -> str:
         if line and not line.startswith("#"):
             lines.append(line)
     return " ".join(lines)
+
+
+# voxtype's default list minus "mm", which also means millimetres ("5 mm").
+FILLER_WORDS = ("uh", "um", "er", "ah", "eh", "hmm", "hm", "mhm")
+_FILLER_ALT = "|".join(FILLER_WORDS)
+# Also swallows one following separator, so "um, I think" does not leave a stray comma.
+# Hyphens and apostrophes do not count as boundaries, so "uh-huh", "mm-hmm" and "um's" stay whole.
+_FILLER_RE = re.compile(r"(?<![\w'’-])(?:" + _FILLER_ALT + r")(?![\w'’-])[,;:]?\s*", re.IGNORECASE)
+# A filler quoted or bracketed on its own ('"Um," she said', "(um)") would otherwise leave an empty pair behind.
+_QUOTED_FILLER_RE = re.compile(
+    "|".join(
+        re.escape(open_) + r"(?:" + _FILLER_ALT + r")[,;:.!?]?" + re.escape(close) + r"\s*"
+        for open_, close in (('"', '"'), ("“", "”"), ("‘", "’"), ("(", ")"), ("[", "]"))
+    ),
+    re.IGNORECASE,
+)
+
+
+def remove_fillers(text: str) -> str:
+    cleaned = _FILLER_RE.sub("", _QUOTED_FILLER_RE.sub("", text))
+    if cleaned == text:
+        return text
+    at_start = _FILLER_RE.match(text.lstrip(" .,;:!?…\"“‘([")) is not None
+    cleaned = re.sub(r"\s+([,.;:!?])", r"\1", cleaned)
+    cleaned = re.sub(r",(\s*,)+", ",", cleaned)
+    cleaned = re.sub(r"[,;:]+([.!?])", r"\1", cleaned)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned)
+    cleaned = cleaned.lstrip(" .,;:!?…").strip()
+    cleaned = re.sub(r"[,;:]+$", "", cleaned)
+    if not re.search(r"\w", cleaned):
+        return ""
+    # Only the removed word's position is known to be a sentence start; elsewhere Whisper's casing stands.
+    if at_start and cleaned[:1].islower():
+        cleaned = cleaned[0].upper() + cleaned[1:]
+    return cleaned
 
 
 def load_config():
@@ -67,6 +105,9 @@ def load_config():
         "auto_type": config.getboolean("behavior", "auto_type", fallback=True),
         "notifications": config.getboolean("behavior", "notifications", fallback=True),
         "hotwords_file": Path(config.get("behavior", "hotwords_file", fallback=str(HOTWORDS_DEFAULT_PATH))).expanduser(),
+        "sounds": config.getboolean("behavior", "sounds", fallback=True),
+        "start_sound": Path(config.get("behavior", "start_sound", fallback=START_SOUND_DEFAULT_PATH)).expanduser(),
+        "stop_sound": Path(config.get("behavior", "stop_sound", fallback=STOP_SOUND_DEFAULT_PATH)).expanduser(),
         "test_models": test_models,
     }
 
@@ -93,6 +134,9 @@ DEVICE = CONFIG["device"]
 COMPUTE_TYPE = CONFIG["compute_type"]
 AUTO_TYPE = CONFIG["auto_type"]
 NOTIFICATIONS = CONFIG["notifications"]
+SOUNDS = CONFIG["sounds"]
+START_SOUND = CONFIG["start_sound"]
+STOP_SOUND = CONFIG["stop_sound"]
 TEST_MODELS = CONFIG["test_models"]
 
 
@@ -164,11 +208,26 @@ class Dictation:
             stderr=subprocess.DEVNULL,
         )
 
+    def play_sound(self, path):
+        """Play a short cue sound without waiting for it."""
+        if not SOUNDS:
+            return
+        try:
+            subprocess.Popen(
+                ["paplay", str(path)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except FileNotFoundError:
+            # A missing player must never stop a recording; check_dependencies already warned.
+            pass
+
     def start_recording(self):
         if self.recording or self.model_error:
             return
 
         self.recording = True
+        self.play_sound(START_SOUND)
         self.temp_file = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
         self.temp_file.close()
 
@@ -203,6 +262,7 @@ class Dictation:
                 self.record_process.kill()
             self.record_process = None
 
+        self.play_sound(STOP_SOUND)
         threading.Thread(target=self._transcribe, daemon=True).start()
 
     def _transcribe(self):
@@ -236,6 +296,7 @@ class Dictation:
             )
 
             text = " ".join(segment.text.strip() for segment in segments)
+            text = remove_fillers(text)
 
             if text:
                 process = None
@@ -254,7 +315,8 @@ class Dictation:
                         self.listener.stop()
                     try:
                         subprocess.run(
-                            ["xdotool", "type", "--delay", "3", text],
+                            # Trailing space so back-to-back dictations do not run together; the clipboard copy stays clean.
+                            ["xdotool", "type", "--delay", "3", text + " "],
                             timeout=30
                         )
                     except subprocess.TimeoutExpired:
@@ -318,6 +380,11 @@ def check_dependencies():
     if AUTO_TYPE:
         if subprocess.run(["which", "xdotool"], capture_output=True).returncode != 0:
             missing.append(("xdotool", "xdotool"))
+
+    # Warn only: a missing sound player must not stop dictation, and anything in missing exits.
+    if SOUNDS:
+        if subprocess.run(["which", "paplay"], capture_output=True).returncode != 0:
+            print("Warning: paplay not found, start/stop sounds will not play - install with: sudo apt install pulseaudio-utils")
 
     if missing:
         print("Missing dependencies:")

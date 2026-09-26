@@ -1,0 +1,36 @@
+{"candidate": "whisper:base.en", "sample": "01", "load_s": 1.644, "median_s": 0.586, "text": "The weather turned cold last night, so we lit the fire early and read by the window until the rain stopped."}
+{"candidate": "whisper:base.en", "sample": "02", "load_s": 1.644, "median_s": 0.733, "text": "Please send me the reports by Friday afternoon and remember to include the figures from the second quarter."}
+{"candidate": "whisper:base.en", "sample": "03", "load_s": 1.644, "median_s": 0.733, "text": "Open Ghostty, start a Zellij session and then run pytest with uv and check the JSON output against the README.md file"}
+{"candidate": "whisper:base.en", "sample": "04", "load_s": 1.644, "median_s": 0.614, "text": "Oskloat to write a reject that passes the TSV export then commit the YAML config and update the gitignore on GitHub"}
+{"candidate": "whisper:base.en", "sample": "05", "load_s": 1.644, "median_s": 0.676, "text": "Yvesuddhimagga explains the jhāna in detail and the aṭakatān tikā add layers of commentary on each sutta."}
+{"candidate": "whisper:base.en", "sample": "06", "load_s": 1.644, "median_s": 0.709, "text": "mettā karuṇāna muditā and upekkhā are the four brahmavihāra taught in the Dīgha Nikāya and the Saṃyutta Nikāya"}
+{"candidate": "whisper:small.en", "sample": "01", "load_s": 1.634, "median_s": 1.629, "text": "The weather turned cold last night, so we lit the fire early and read by the window until the rain stopped."}
+{"candidate": "whisper:small.en", "sample": "02", "load_s": 1.634, "median_s": 1.527, "text": "Please send me the reports by Friday afternoon and remember to include the figures from the second quarter."}
+{"candidate": "whisper:small.en", "sample": "03", "load_s": 1.634, "median_s": 1.789, "text": "Open Ghosty, start a Zellij session and then run pytest with uv and check the JSON output against the README.md file."}
+{"candidate": "whisper:small.en", "sample": "04", "load_s": 1.634, "median_s": 1.872, "text": "Ask Claude to write a regex that passes the TSV export, then commit the YAML config and update the gitignore on GitHub."}
+{"candidate": "whisper:small.en", "sample": "05", "load_s": 1.634, "median_s": 2.082, "text": "Visuddhimagga explains the jhāna in detail and ātakatān tīkā add layers of commentary on each sutta"}
+{"candidate": "whisper:small.en", "sample": "06", "load_s": 1.634, "median_s": 2.204, "text": "mettā karuṇā muditā upekkhā or the four brahmavihāra taught in the Dīgha Nikāya and the Samyutta Nikāya"}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v2", "sample": "01", "load_s": 1.908, "median_s": 1.248, "text": "The weather turned cold last night, so we lit the fire early and read by the window until the rain stopped."}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v2", "sample": "02", "load_s": 1.908, "median_s": 0.95, "text": "Please send me the reports by Friday afternoon and remember to include the figures from the second quarter."}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v2", "sample": "03", "load_s": 1.908, "median_s": 1.153, "text": "Open Ghosty, start a Zillage session, and then run Pytest with UV and check the JSON output against the readme.md file."}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v2", "sample": "04", "load_s": 1.908, "median_s": 1.083, "text": "Ask Claude to write a regek that passes the TSV export, then commit the YAL config and update the gitignore on GitHub."}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v2", "sample": "05", "load_s": 1.908, "median_s": 1.124, "text": "The Visuddhimagga explains the Jhana in detail and the Atakata and Tika add layers of commentary on each sutta."}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v2", "sample": "06", "load_s": 1.908, "median_s": 1.17, "text": "Metta, Karuna, Modita and Upeka are the four Brahma Vihara, taught in the Diga Nikaya and the Samyutta Nikaya."}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v3", "sample": "01", "load_s": 2.039, "median_s": 1.364, "text": "The weather cold last night, so we lit the fire early and read by the window until the rain stopped."}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v3", "sample": "02", "load_s": 2.039, "median_s": 1.032, "text": "Please send me the reports by Friday afternoon and remember to include the figures from the second quarter."}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v3", "sample": "03", "load_s": 2.039, "median_s": 1.268, "text": "Open Ghosty, start a Zelage session, and then run PyTest with UV and check the JSON output against the readme.md file."}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v3", "sample": "04", "load_s": 2.039, "median_s": 1.132, "text": "Ask Claude to write a reject that passes the TSV export, then commit the YAML config and update the Gitignore on GitHub."}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v3", "sample": "05", "load_s": 2.039, "median_s": 1.088, "text": "Vivisuddhi Magga explains the jhana in detail and the Atakata and Tika add layers of commentary on each sutta."}
+{"candidate": "parakeet:nemo-parakeet-tdt-0.6b-v3", "sample": "06", "load_s": 2.039, "median_s": 1.118, "text": "Metta, Karuna, Mudita, and Upeka are the four Brahma Vihara taught in the Dig Nikaya and the Samyutta Nikaya."}
+{"candidate": "whisper:distil-small.en", "sample": "01", "load_s": 4.113, "median_s": 2.688, "text": "The weather"}
+{"candidate": "whisper:distil-small.en", "sample": "02", "load_s": 4.113, "median_s": 4.45, "text": "Please"}
+{"candidate": "whisper:distil-small.en", "sample": "03", "load_s": 4.113, "median_s": 16.693, "text": "G, Stā, St stop, S and CH"}
+{"candidate": "whisper:distil-small.en", "sample": "04", "load_s": 4.113, "median_s": 8.944, "text": "Oscl and"}
+{"candidate": "whisper:distil-small.en", "sample": "05", "load_s": 4.113, "median_s": 2.189, "text": ""}
+{"candidate": "whisper:distil-small.en", "sample": "06", "load_s": 4.113, "median_s": 3.319, "text": ""}
+{"candidate": "whisper:distil-small.en:nohotwords", "sample": "01", "load_s": 3.927, "median_s": 0.999, "text": "The weather turned cold last night so we lit the fire early and read by the window until the rain stopped."}
+{"candidate": "whisper:distil-small.en:nohotwords", "sample": "02", "load_s": 3.927, "median_s": 1.003, "text": "Please send me the reports by Friday afternoon and remember to include the figures from the second quarter."}
+{"candidate": "whisper:distil-small.en:nohotwords", "sample": "03", "load_s": 3.927, "median_s": 1.122, "text": "Open Ghosty, start a zellage session and then run pie test with UV and check the Jason output against the readme.MD file."}
+{"candidate": "whisper:distil-small.en:nohotwords", "sample": "04", "load_s": 3.927, "median_s": 1.079, "text": "Ask Claude to write a reject that passes the TSV export, then commit the ammo config and update the Git Ignore on GitHub."}
+{"candidate": "whisper:distil-small.en:nohotwords", "sample": "05", "load_s": 3.927, "median_s": 1.34, "text": "Ivisudi Magga explains the Jana in detail and the Atakatan Tika add layers of commentary on each Suta."}
+{"candidate": "whisper:distil-small.en:nohotwords", "sample": "06", "load_s": 3.927, "median_s": 1.376, "text": "Meta, Karuna, Mudita and Upeka are the four Brahma Vihara, taught in the Deganicaya and the Samutaniutanikaya."}

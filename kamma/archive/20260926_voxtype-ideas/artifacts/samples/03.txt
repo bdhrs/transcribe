@@ -1,0 +1,1 @@
+Open Ghostty, start a Zellij session, then run pytest with uv and check the JSON output against the README.md file.

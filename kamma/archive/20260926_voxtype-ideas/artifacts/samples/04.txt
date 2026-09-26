@@ -1,0 +1,1 @@
+Ask Claude to write a regex that parses the TSV export, then commit the YAML config and update the gitignore on GitHub.
