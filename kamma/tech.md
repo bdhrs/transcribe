@@ -8,6 +8,9 @@
   `xdotool type` (typing). Optional: `paplay` (start/stop sounds), `notify-send` (notifications).
 - Config: `~/.config/transcribe/config.ini` and `hotwords.txt`, seeded from the repo's example files.
 - Tests: pytest (`uv run --with pytest pytest tests/`), run without an X display via `PYNPUT_BACKEND=dummy`.
+  The dummy backend gives every named `Key` the same value, so tests cannot tell named keys apart.
+- Hotkey: a key name, a single char, or a raw X keysym number. The live config uses `0x1008ffb1`,
+  the keysym this laptop's layout gives the F23 its Copilot key sends (with Super_L and Shift_L).
 
 ## Who This Is For
 The maintainer on Linux Mint (Cinnamon, X11). Others can install the fork on any X11 Linux desktop.

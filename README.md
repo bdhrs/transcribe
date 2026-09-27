@@ -116,6 +116,9 @@ stop_sound = /usr/share/sounds/freedesktop/stereo/audio-volume-change.oga
 | Special | `scroll_lock`, `pause`, `print_screen`, `caps_lock`, `num_lock`, `space`, `tab`, `enter`, `esc`, `backspace` |
 | Media | `media_play_pause`, `media_next`, `media_previous`, `media_volume_up`, `media_volume_down`, `media_volume_mute` |
 | Single char | Any single letter or number: `a`, `b`, `1`, `2`, etc. |
+| Key number | Any X keysym number, in hex or decimal: `0x1008ffb1` |
+
+**Copilot key:** the Copilot key on recent laptops sends left Super, Shift and F23 all at once. With `key = cmd`, the left Windows key (and shortcuts like Windows+Space) also starts a recording. Set `key` to the keysym number your layout gives that F23 key, so only the Copilot key records. To find it, run `xev -event keyboard`, press the Copilot key, and read the `keysym 0x...` value on the key that is not Super or Shift. On one laptop it was `0x1008ffb1` (XF86TouchpadOff). The same method works for any other key that has no name in the table above.
 
 ### GPU Support
 

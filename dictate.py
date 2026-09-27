@@ -123,12 +123,31 @@ def get_hotkey(key_name):
         return getattr(keyboard.Key, key_name)
     elif len(key_name) == 1:
         return keyboard.KeyCode.from_char(key_name)
-    else:
+    # A raw keysym number reaches keys pynput has no name for, like XF86TouchpadOff (0x1008ffb1),
+    # which some layouts give the F23 that a laptop Copilot key sends.
+    try:
+        vk = int(key_name, 0)
+    except ValueError:
         print(f"Unknown key: {key_name}, defaulting to cmd")
         return keyboard.Key.cmd
+    # The listener reports a named key's keysym as the named Key, which never equals a bare KeyCode.
+    for key in keyboard.Key:
+        if key.value.vk == vk:
+            return key
+    return keyboard.KeyCode.from_vk(vk)
+
+
+def hotkey_label(key):
+    """Name the hotkey for messages; a key built from a number has no name or char."""
+    if hasattr(key, "name"):
+        return key.name
+    if key.char is not None:
+        return key.char
+    return hex(key.vk)
 
 
 HOTKEY = get_hotkey(CONFIG["key"])
+HOTKEY_NAME = hotkey_label(HOTKEY)
 MODEL_SIZE = CONFIG["model"]
 DEVICE = CONFIG["device"]
 COMPUTE_TYPE = CONFIG["compute_type"]
@@ -163,9 +182,8 @@ class Dictation:
         try:
             self.model = WhisperModel(MODEL_SIZE, device=DEVICE, compute_type=COMPUTE_TYPE)
             self.model_loaded.set()
-            hotkey_name = HOTKEY.name if hasattr(HOTKEY, 'name') else HOTKEY.char
             print(f"Model loaded. Ready for dictation!")
-            print(f"Hold [{hotkey_name}] to record, release to transcribe.")
+            print(f"Hold [{HOTKEY_NAME}] to record, release to transcribe.")
             print("Press Ctrl+C to quit.")
         except Exception as e:
             self.model_error = str(e)
@@ -245,8 +263,7 @@ class Dictation:
             stderr=subprocess.DEVNULL
         )
         print("Recording...")
-        hotkey_name = HOTKEY.name if hasattr(HOTKEY, 'name') else HOTKEY.char
-        self.notify("Recording...", f"Release {hotkey_name.upper()} when done", "audio-input-microphone", 30000)
+        self.notify("Recording...", f"Release {HOTKEY_NAME.upper()} when done", "audio-input-microphone", 30000)
 
     def stop_recording(self):
         if not self.recording:
@@ -470,8 +487,7 @@ def run_test_mode(reuse: bool):
             sys.exit(1)
         print(f"Reusing existing recording: {TEST_WAV_PATH}")
     else:
-        hotkey_name = HOTKEY.name if hasattr(HOTKEY, "name") else HOTKEY.char
-        print(f"Hold [{hotkey_name}] to record your test sample. Release when done.")
+        print(f"Hold [{HOTKEY_NAME}] to record your test sample. Release when done.")
 
         recorded = threading.Event()
         record_process = [None]
