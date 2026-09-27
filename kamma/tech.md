@@ -5,7 +5,9 @@
   live `transcribe` command runs the repo's code. `just` recipes: install, restart, test, hotwords, uninstall.
 - Speech: faster-whisper (CTranslate2), CPU, int8. Live model: base.en, with the hotwords file.
 - Keys: pynput listener. Audio: `arecord` (16 kHz mono WAV). Output: `xclip` (clipboard) and
-  `xdotool type` (typing). Optional: `paplay` (start/stop sounds), `notify-send` (notifications).
+  `xdotool type` (typing; the app locks layout group 0 around it, because xdotool switches group
+  per character when another group is active and freezes Xorg). Not pynput's `Controller.type`: its XSendEvent
+  events are ignored by Ghostty and xed. Optional: `paplay` (start/stop sounds), `notify-send` (notifications).
 - Config: `~/.config/transcribe/config.ini` and `hotwords.txt`, seeded from the repo's example files.
 - Tests: pytest (`uv run --with pytest pytest tests/`), run without an X display via `PYNPUT_BACKEND=dummy`.
   The dummy backend gives every named `Key` the same value, so tests cannot tell named keys apart.

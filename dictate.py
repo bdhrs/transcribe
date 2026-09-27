@@ -6,6 +6,7 @@ Hold the hotkey to record, release to transcribe and copy to clipboard.
 
 import argparse
 import configparser
+import ctypes
 import gc
 import queue
 import re
@@ -157,6 +158,39 @@ SOUNDS = CONFIG["sounds"]
 START_SOUND = CONFIG["start_sound"]
 STOP_SOUND = CONFIG["stop_sound"]
 TEST_MODELS = CONFIG["test_models"]
+
+XKB_USE_CORE_KBD = 0x100
+
+
+def _x11():
+    x11 = ctypes.CDLL("libX11.so.6")
+    x11.XOpenDisplay.restype = ctypes.c_void_p
+    x11.XOpenDisplay.argtypes = [ctypes.c_char_p]
+    x11.XCloseDisplay.argtypes = [ctypes.c_void_p]
+    x11.XkbGetState.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p]
+    x11.XkbLockGroup.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint]
+    x11.XSync.argtypes = [ctypes.c_void_p, ctypes.c_int]
+    return x11
+
+
+def layout_group(lock=None):
+    """Return the active keyboard layout group, or lock it to `lock` first. None if X is unreachable."""
+    try:
+        x11 = _x11()
+    except OSError:
+        return None
+    display = x11.XOpenDisplay(None)
+    if not display:
+        return None
+    try:
+        if lock is not None:
+            x11.XkbLockGroup(display, XKB_USE_CORE_KBD, lock)
+            x11.XSync(display, 0)
+        state = (ctypes.c_ubyte * 32)()  # XkbStateRec; its first byte is the effective group
+        x11.XkbGetState(display, XKB_USE_CORE_KBD, state)
+        return state[0]
+    finally:
+        x11.XCloseDisplay(display)
 
 
 class Dictation:
@@ -330,6 +364,12 @@ class Dictation:
                 if AUTO_TYPE:
                     if self.listener:
                         self.listener.stop()
+                    # With any layout but the first active, xdotool switches layout group for almost every
+                    # character, and each switch costs Xorg ~0.13 s: a 70-character line froze the desktop for
+                    # ~10 s. Switching to the first layout once around the typing costs ~0.13 s in total.
+                    group = layout_group()
+                    if group:
+                        layout_group(lock=0)
                     try:
                         subprocess.run(
                             # Trailing space so back-to-back dictations do not run together; the clipboard copy stays clean.
@@ -338,6 +378,9 @@ class Dictation:
                         )
                     except subprocess.TimeoutExpired:
                         print("xdotool timed out")
+                    finally:
+                        if group:
+                            layout_group(lock=group)
 
                 print(f"Copied: {text}")
                 self.notify("Copied!", text[:100] + ("..." if len(text) > 100 else ""), "emblem-ok-symbolic", 3000)
